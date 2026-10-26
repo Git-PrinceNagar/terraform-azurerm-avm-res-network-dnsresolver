@@ -1,13 +1,15 @@
 # The standard AVM interfaces (resource lock, role assignments) rendered as AzAPI bodies.
-# `role_assignment_definition_scope` is the subscription, matching the scope AzureRM used when
-# it resolved `role_definition_name` to a role definition id.
+# `role_assignment_definition_scope` is the resource group that hosts the resolver, which is the
+# scope AzureRM resolved `role_definition_name` at. A role name therefore finds resource-group
+# custom roles as well as subscription and inherited ones. A name that is not found is passed
+# through as the role definition id, so a lookup at the wrong scope would send an invalid id.
 module "interfaces" {
   source  = "Azure/avm-utl-interfaces/azure"
   version = "0.6.0"
 
   enable_telemetry                 = var.enable_telemetry
   lock                             = var.lock
-  role_assignment_definition_scope = "/subscriptions/${data.azapi_client_config.current.subscription_id}"
+  role_assignment_definition_scope = local.resource_group_resource_id
   role_assignments                 = var.role_assignments
 }
 
@@ -400,14 +402,36 @@ resource "azapi_resource" "lock_rulesets" {
 resource "azapi_resource" "role_assignments" {
   for_each = module.interfaces.role_assignments_azapi
 
-  name                   = each.value.name
-  parent_id              = azapi_resource.this.id
-  type                   = each.value.type
-  body                   = each.value.body
-  create_headers         = local.azapi_headers
-  delete_headers         = local.azapi_headers
-  ignore_null_property   = true
-  read_headers           = local.azapi_headers
+  # A pinned name wins. Otherwise derive one from the resolver, principal, role and delegated
+  # identity, so a replacement caused by a changed principal or role gets a new GUID.
+  name = coalesce(
+    var.role_assignments[each.key].name,
+    uuidv5("url", join("|", [
+      lower(azapi_resource.this.id),
+      local.role_assignment_properties[each.key].principalId,
+      local.role_assignment_properties[each.key].roleDefinitionId,
+      lower(coalesce(local.role_assignment_properties[each.key].delegatedManagedIdentityResourceId, "-")),
+    ]))
+  )
+  parent_id = azapi_resource.this.id
+  type      = each.value.type
+  body = {
+    properties = local.role_assignment_properties[each.key]
+  }
+  create_headers = local.azapi_headers
+  delete_headers = local.azapi_headers
+  # Keeps the configured casing after refresh, so Azure's casing cannot trigger a replacement.
+  ignore_casing        = true
+  ignore_null_property = true
+  read_headers         = local.azapi_headers
+  # ARM rejects an in-place change of these members (`RoleAssignmentUpdateNotPermitted`), so a
+  # change replaces the assignment. A replacement takes the configured name, which is a new
+  # derived GUID unless the consumer pinned `name`.
+  replace_triggers_refs = [
+    "properties.principalId",
+    "properties.roleDefinitionId",
+    "properties.delegatedManagedIdentityResourceId",
+  ]
   response_export_values = []
   retry                  = var.retry
   update_headers         = local.azapi_headers
@@ -424,37 +448,47 @@ resource "azapi_resource" "role_assignments" {
   }
 
   # 🔴 REQUIRED BY THE MIGRATION, blessed by `avm-tf-migration` SKILL.md L113-117.
-  # A role assignment's name is a server-assigned GUID. The state move recovers it from the
-  # resource id, while `avm-utl-interfaces` would offer a freshly generated `random_uuid`, and
+  # A role assignment created by AzureRM has a server-assigned GUID as its name. The state move
+  # recovers it from the resource id, while the derived name above can never match it, and
   # `name` carries `RequiresReplace` in AzAPI -- so without this the adoption plan would
   # DESTROY AND RECREATE every existing role assignment. `ignore_changes` is inert at create
-  # time, so genuinely new role assignments still take the generated UUID.
+  # and replace time, so a new or replaced role assignment takes the configured name.
   lifecycle {
     ignore_changes = [name]
   }
 }
 
-# One name per ruleset role assignment. `avm-utl-interfaces` only generates names for the
-# top-level `var.role_assignments` keys; reusing those GUIDs at a second scope would collide,
-# so the ruleset copies get their own.
-resource "random_uuid" "role_assignments_rulesets" {
-  for_each = local.ruleset_role_assignments_map
-}
-
 resource "azapi_resource" "role_assignments_rulesets" {
   for_each = local.ruleset_role_assignments_map
 
-  name      = random_uuid.role_assignments_rulesets[each.key].result
+  # One derived name per ruleset copy. It includes the ruleset id, so it never collides with the
+  # resolver's assignment or with another ruleset's. `var.role_assignments[*].name` applies to
+  # the resolver only.
+  name = uuidv5("url", join("|", [
+    lower(each.value.ruleset_id),
+    local.role_assignment_properties[each.value.role_assignment_key].principalId,
+    local.role_assignment_properties[each.value.role_assignment_key].roleDefinitionId,
+    lower(coalesce(local.role_assignment_properties[each.value.role_assignment_key].delegatedManagedIdentityResourceId, "-")),
+  ]))
   parent_id = each.value.ruleset_id
   type      = module.interfaces.role_assignments_azapi[each.value.role_assignment_key].type
   # AzureRM passed `role_definition_id_or_name` to `role_definition_name` unconditionally here,
   # which failed whenever a consumer supplied a role definition ID. The interfaces module looks
   # the name up and passes an ID straight through, so both forms now work.
-  body                   = module.interfaces.role_assignments_azapi[each.value.role_assignment_key].body
-  create_headers         = local.azapi_headers
-  delete_headers         = local.azapi_headers
-  ignore_null_property   = true
-  read_headers           = local.azapi_headers
+  body = {
+    properties = local.role_assignment_properties[each.value.role_assignment_key]
+  }
+  create_headers = local.azapi_headers
+  delete_headers = local.azapi_headers
+  # See `azapi_resource.role_assignments`.
+  ignore_casing        = true
+  ignore_null_property = true
+  read_headers         = local.azapi_headers
+  replace_triggers_refs = [
+    "properties.principalId",
+    "properties.roleDefinitionId",
+    "properties.delegatedManagedIdentityResourceId",
+  ]
   response_export_values = []
   retry                  = var.retry
   update_headers         = local.azapi_headers

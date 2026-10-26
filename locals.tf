@@ -26,6 +26,29 @@ locals {
 }
 
 locals {
+  # The role assignment request body, shared by the resolver and the forwarding rulesets.
+  # - The immutable ids are lowercased so a casing-only change does not replace the assignment.
+  # - AzureRM sent `principalType = "ServicePrincipal"` when `skip_service_principal_aad_check`
+  #   was true. ARM has no member of that name, so the body does the same unless
+  #   `principal_type` is set, in which case the explicit value wins.
+  role_assignment_properties = {
+    for key, assignment in module.interfaces.role_assignments_azapi : key => merge(
+      assignment.body.properties,
+      {
+        principalId      = lower(assignment.body.properties.principalId)
+        roleDefinitionId = lower(assignment.body.properties.roleDefinitionId)
+      },
+      assignment.body.properties.delegatedManagedIdentityResourceId == null ? {} : {
+        delegatedManagedIdentityResourceId = lower(assignment.body.properties.delegatedManagedIdentityResourceId)
+      },
+      var.role_assignments[key].skip_service_principal_aad_check && var.role_assignments[key].principal_type == null ? {
+        principalType = "ServicePrincipal"
+      } : {},
+    )
+  }
+}
+
+locals {
   # `avm-utl-interfaces` builds the lock body without `notes`. The AzureRM resources this
   # module replaced always set `notes`, so it is merged back in to avoid a day-2 diff.
   lock_body = var.lock == null ? null : {

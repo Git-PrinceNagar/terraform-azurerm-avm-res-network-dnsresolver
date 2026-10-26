@@ -161,10 +161,6 @@ data "azapi_client_config" "current" {
 locals {
   resource_group_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-test"
 }
-
-module "interfaces" {
-  role_assignment_definition_scope = "/subscriptions/00000000-0000-0000-0000-000000000001"
-}
 '@ | Set-Content (Join-Path $sandbox 'reads_override.tf')
     if (Test-Path (Join-Path $modulePath '.terraform.lock.hcl')) {
         Copy-Item (Join-Path $modulePath '.terraform.lock.hcl') $sandbox
