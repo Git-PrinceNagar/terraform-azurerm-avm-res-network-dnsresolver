@@ -16,6 +16,10 @@ An in-module `moved` block migrates the existing state automatically. Run `terra
 
 `resource_types`, `ignore_body_changes`, `retry` and `timeouts` are new optional inputs. All defaults preserve the previous behaviour.
 
+## Upgrade notes
+
+Direct Terraform Registry or Git callers of `//modules/ruleset_vnet_link` must provide `location` with a region valid for their cloud. Telemetry is enabled by default; set `enable_telemetry = false` to opt out. When enabled, telemetry requires `Microsoft.Resources/deployments/read`, `Microsoft.Resources/deployments/write`, and `Microsoft.Resources/deployments/delete` at the active subscription scope. Root-module telemetry forwarding does not supply these required inputs for standalone child callers.
+
 ## Feedback
 - Your feedback is welcome! Please raise an issue or feature request on the module's GitHub repository.
 
@@ -32,7 +36,10 @@ The following requirements are needed by this module:
 
 The following resources are used by this module:
 
+- [azapi_resource.telemetry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.this](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
+- [terraform_data.telemetry](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) (resource)
+- [azapi_client_config.telemetry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/data-sources/client_config) (data source)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
@@ -42,6 +49,12 @@ The following input variables are required:
 ### <a name="input_dns_forwarding_ruleset_id"></a> [dns\_forwarding\_ruleset\_id](#input\_dns\_forwarding\_ruleset\_id)
 
 Description: The ID of the DNS forwarding ruleset to link to the virtual networks.
+
+Type: `string`
+
+### <a name="input_location"></a> [location](#input\_location)
+
+Description: The Azure region for this module's resources or telemetry deployment.
 
 Type: `string`
 
@@ -62,6 +75,16 @@ map(object({
 ## Optional Inputs
 
 The following input variables are optional (have default values):
+
+### <a name="input_enable_telemetry"></a> [enable\_telemetry](#input\_enable\_telemetry)
+
+Description: This variable controls whether or not telemetry is enabled for the module.  
+For more information see <https://aka.ms/avm/telemetryinfo>.  
+If it is set to false, then no telemetry will be collected.
+
+Type: `bool`
+
+Default: `true`
 
 ### <a name="input_ignore_body_changes"></a> [ignore\_body\_changes](#input\_ignore\_body\_changes)
 

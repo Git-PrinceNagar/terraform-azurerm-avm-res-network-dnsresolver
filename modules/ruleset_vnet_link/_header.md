@@ -15,5 +15,9 @@ An in-module `moved` block migrates the existing state automatically. Run `terra
 
 `resource_types`, `ignore_body_changes`, `retry` and `timeouts` are new optional inputs. All defaults preserve the previous behaviour.
 
+## Upgrade notes
+
+Direct Terraform Registry or Git callers of `//modules/ruleset_vnet_link` must provide `location` with a region valid for their cloud. Telemetry is enabled by default; set `enable_telemetry = false` to opt out. When enabled, telemetry requires `Microsoft.Resources/deployments/read`, `Microsoft.Resources/deployments/write`, and `Microsoft.Resources/deployments/delete` at the active subscription scope. Root-module telemetry forwarding does not supply these required inputs for standalone child callers.
+
 ## Feedback
 - Your feedback is welcome! Please raise an issue or feature request on the module's GitHub repository.

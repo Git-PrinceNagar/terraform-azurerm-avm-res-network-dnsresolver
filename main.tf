@@ -25,13 +25,10 @@ resource "azapi_resource" "this" {
       }
     }
   }
-  create_headers      = local.azapi_headers
-  delete_headers      = local.azapi_headers
   ignore_body_changes = length(var.ignore_body_changes.network_dns_resolvers) > 0 ? var.ignore_body_changes.network_dns_resolvers : null
   # Matches AzureRM's nil-pointer/omitempty serialisation: an optional the consumer left unset
   # is absent from the request rather than sent as an explicit JSON null.
   ignore_null_property = true
-  read_headers         = local.azapi_headers
   # `virtual_network_id` was ForceNew on `azurerm_private_dns_resolver` (L61): a resolver
   # cannot be repointed at a different virtual network in place.
   replace_triggers_refs = [
@@ -41,9 +38,8 @@ resource "azapi_resource" "this" {
     "properties.dnsResolverState",
     "properties.provisioningState",
   ]
-  retry          = var.retry
-  tags           = var.tags
-  update_headers = local.azapi_headers
+  retry = var.retry
+  tags  = var.tags
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [local.timeouts]
@@ -79,11 +75,8 @@ resource "azapi_resource" "inbound_endpoint" {
       ]
     }
   }
-  create_headers       = local.azapi_headers
-  delete_headers       = local.azapi_headers
   ignore_body_changes  = length(var.ignore_body_changes.network_dns_resolvers_inbound_endpoints) > 0 ? var.ignore_body_changes.network_dns_resolvers_inbound_endpoints : null
   ignore_null_property = true
-  read_headers         = local.azapi_headers
   # Preserve AzureRM's IP-configuration replacement semantics without tracking assigned Dynamic IPs.
   replace_triggers_refs = [
     "properties.ipConfigurations[0].subnet.id",
@@ -95,9 +88,8 @@ resource "azapi_resource" "inbound_endpoint" {
     "properties.ipConfigurations",
     "properties.provisioningState",
   ]
-  retry          = var.retry
-  tags           = local.inbound_endpoint_tags[each.key]
-  update_headers = local.azapi_headers
+  retry = var.retry
+  tags  = local.inbound_endpoint_tags[each.key]
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [local.timeouts]
@@ -125,11 +117,8 @@ resource "azapi_resource" "outbound_endpoint" {
       }
     }
   }
-  create_headers       = local.azapi_headers
-  delete_headers       = local.azapi_headers
   ignore_body_changes  = length(var.ignore_body_changes.network_dns_resolvers_outbound_endpoints) > 0 ? var.ignore_body_changes.network_dns_resolvers_outbound_endpoints : null
   ignore_null_property = true
-  read_headers         = local.azapi_headers
   # `subnet_id` was ForceNew on `azurerm_private_dns_resolver_outbound_endpoint` (L66).
   replace_triggers_refs = [
     "properties.subnet.id",
@@ -138,9 +127,8 @@ resource "azapi_resource" "outbound_endpoint" {
     "properties.provisioningState",
     "properties.subnet.id",
   ]
-  retry          = var.retry
-  tags           = local.outbound_endpoint_tags[each.key]
-  update_headers = local.azapi_headers
+  retry = var.retry
+  tags  = local.outbound_endpoint_tags[each.key]
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [local.timeouts]
@@ -186,11 +174,8 @@ resource "azapi_resource" "forwarding_ruleset" {
       ]
     }
   }
-  create_headers       = local.azapi_headers
-  delete_headers       = local.azapi_headers
   ignore_body_changes  = length(var.ignore_body_changes.network_dns_forwarding_rulesets) > 0 ? var.ignore_body_changes.network_dns_forwarding_rulesets : null
   ignore_null_property = true
-  read_headers         = local.azapi_headers
   # No `replace_triggers_refs`: the only ForceNew field on
   # `azurerm_private_dns_resolver_dns_forwarding_ruleset` was `name` (L50), which AzAPI already
   # treats as a replacement trigger natively. Outbound-endpoint replacement is propagated by
@@ -199,9 +184,8 @@ resource "azapi_resource" "forwarding_ruleset" {
     "properties.dnsResolverOutboundEndpoints",
     "properties.provisioningState",
   ]
-  retry          = var.retry
-  tags           = local.forwarding_ruleset_tags[each.key]
-  update_headers = local.azapi_headers
+  retry = var.retry
+  tags  = local.forwarding_ruleset_tags[each.key]
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [local.timeouts]
@@ -242,18 +226,14 @@ resource "azapi_resource" "forwarding_rule" {
       ]
     }
   }
-  create_headers       = local.azapi_headers
-  delete_headers       = local.azapi_headers
   ignore_body_changes  = length(var.ignore_body_changes.network_dns_forwarding_rulesets_forwarding_rules) > 0 ? var.ignore_body_changes.network_dns_forwarding_rulesets_forwarding_rules : null
   ignore_null_property = true
-  read_headers         = local.azapi_headers
   # `domain_name` was ForceNew on `azurerm_private_dns_resolver_forwarding_rule` (L71).
   replace_triggers_refs = [
     "properties.domainName",
   ]
   response_export_values = []
   retry                  = var.retry
-  update_headers         = local.azapi_headers
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [local.timeouts]
@@ -280,11 +260,8 @@ resource "azapi_resource" "virtual_network_link_default" {
       }
     }
   }
-  create_headers       = local.azapi_headers
-  delete_headers       = local.azapi_headers
   ignore_body_changes  = length(var.ignore_body_changes.network_dns_forwarding_rulesets_virtual_network_links) > 0 ? var.ignore_body_changes.network_dns_forwarding_rulesets_virtual_network_links : null
   ignore_null_property = true
-  read_headers         = local.azapi_headers
   # `virtual_network_id` was ForceNew on
   # `azurerm_private_dns_resolver_virtual_network_link` (L62).
   replace_triggers_refs = [
@@ -292,7 +269,6 @@ resource "azapi_resource" "virtual_network_link_default" {
   ]
   response_export_values = []
   retry                  = var.retry
-  update_headers         = local.azapi_headers
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [local.timeouts]
@@ -320,17 +296,13 @@ resource "azapi_resource" "virtual_network_link_additional" {
       }
     }
   }
-  create_headers       = local.azapi_headers
-  delete_headers       = local.azapi_headers
   ignore_body_changes  = length(var.ignore_body_changes.network_dns_forwarding_rulesets_virtual_network_links) > 0 ? var.ignore_body_changes.network_dns_forwarding_rulesets_virtual_network_links : null
   ignore_null_property = true
-  read_headers         = local.azapi_headers
   replace_triggers_refs = [
     "properties.virtualNetwork.id",
   ]
   response_export_values = []
   retry                  = var.retry
-  update_headers         = local.azapi_headers
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [local.timeouts]
@@ -352,13 +324,9 @@ resource "azapi_resource" "lock" {
   parent_id              = azapi_resource.this.id
   type                   = module.interfaces.lock_azapi.type
   body                   = local.lock_body
-  create_headers         = local.azapi_headers
-  delete_headers         = local.azapi_headers
   ignore_null_property   = true
-  read_headers           = local.azapi_headers
   response_export_values = []
   retry                  = var.retry
-  update_headers         = local.azapi_headers
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [local.timeouts]
@@ -379,13 +347,9 @@ resource "azapi_resource" "lock_rulesets" {
   parent_id              = each.value.id
   type                   = module.interfaces.lock_azapi.type
   body                   = local.lock_body
-  create_headers         = local.azapi_headers
-  delete_headers         = local.azapi_headers
   ignore_null_property   = true
-  read_headers           = local.azapi_headers
   response_export_values = []
   retry                  = var.retry
-  update_headers         = local.azapi_headers
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [local.timeouts]
@@ -418,12 +382,9 @@ resource "azapi_resource" "role_assignments" {
   body = {
     properties = local.role_assignment_properties[each.key]
   }
-  create_headers = local.azapi_headers
-  delete_headers = local.azapi_headers
   # Keeps the configured casing after refresh, so Azure's casing cannot trigger a replacement.
   ignore_casing        = true
   ignore_null_property = true
-  read_headers         = local.azapi_headers
   # ARM rejects an in-place change of these members (`RoleAssignmentUpdateNotPermitted`), so a
   # change replaces the assignment. A replacement takes the configured name, which is a new
   # derived GUID unless the consumer pinned `name`.
@@ -434,7 +395,6 @@ resource "azapi_resource" "role_assignments" {
   ]
   response_export_values = []
   retry                  = var.retry
-  update_headers         = local.azapi_headers
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [local.timeouts]
@@ -478,12 +438,9 @@ resource "azapi_resource" "role_assignments_rulesets" {
   body = {
     properties = local.role_assignment_properties[each.value.role_assignment_key]
   }
-  create_headers = local.azapi_headers
-  delete_headers = local.azapi_headers
   # See `azapi_resource.role_assignments`.
   ignore_casing        = true
   ignore_null_property = true
-  read_headers         = local.azapi_headers
   replace_triggers_refs = [
     "properties.principalId",
     "properties.roleDefinitionId",
@@ -491,7 +448,6 @@ resource "azapi_resource" "role_assignments_rulesets" {
   ]
   response_export_values = []
   retry                  = var.retry
-  update_headers         = local.azapi_headers
 
   dynamic "timeouts" {
     for_each = var.timeouts == null ? [] : [local.timeouts]

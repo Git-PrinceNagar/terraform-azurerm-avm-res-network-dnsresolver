@@ -1,0 +1,214 @@
+mock_provider "azapi" {
+  mock_data "azapi_client_config" {
+    defaults = {
+      subscription_id          = "00000000-0000-0000-0000-000000000000"
+      subscription_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000"
+      tenant_id                = "00000000-0000-0000-0000-000000000001"
+    }
+  }
+}
+mock_provider "random" {}
+mock_provider "terraform" {}
+
+override_resource {
+  target = azapi_resource.this
+  values = {
+    id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.Network/dnsResolvers/test"
+  }
+}
+
+override_resource {
+  target = azapi_resource.outbound_endpoint
+  values = {
+    id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.Network/dnsResolvers/test/outboundEndpoints/outbound"
+  }
+}
+
+override_resource {
+  target = azapi_resource.forwarding_ruleset
+  values = {
+    id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.Network/dnsForwardingRulesets/ruleset"
+  }
+}
+
+override_data {
+  target = module.interfaces.data.azapi_resource_list.role_definitions[0]
+  values = {
+    output = {
+      results = [{
+        id        = "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/roleDefinitions/acdd72a7-3385-48ef-bd42-f606fba81ae7"
+        role_name = "Reader"
+      }]
+    }
+  }
+}
+
+variables {
+  location                    = "northeurope"
+  name                        = "test"
+  resource_group_name         = "test"
+  virtual_network_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.Network/virtualNetworks/test"
+  enable_telemetry            = false
+}
+
+run "defaults" {
+  command = apply
+
+  assert {
+    condition     = output.name == "test" && output.resource_id == azapi_resource.this.id
+    error_message = "The resolver name and resource ID must be returned."
+  }
+  assert {
+    condition     = length(output.inbound_endpoints) == 0 && length(output.outbound_endpoints) == 0 && length(output.forwarding_rulesets) == 0
+    error_message = "Optional endpoints and rulesets must be absent by default."
+  }
+  assert {
+    condition     = length(azapi_resource.telemetry) == 0 && length(terraform_data.telemetry) == 0 && length(data.azapi_client_config.telemetry) == 0 && length(azapi_resource.lock) == 0 && length(azapi_resource.role_assignments) == 0
+    error_message = "Disabled telemetry and unconfigured locks and assignments must not create resources."
+  }
+}
+
+run "telemetry_enabled" {
+  command = apply
+
+  variables {
+    enable_telemetry = true
+  }
+
+  assert {
+    condition     = length(azapi_resource.telemetry) == 1 && length(data.azapi_client_config.telemetry) == 1 && length(terraform_data.telemetry) == 1
+    error_message = "Enabled telemetry must use the mocked providers."
+  }
+}
+
+run "endpoints_rules_and_links" {
+  command = apply
+
+  variables {
+    tags = { environment = "test" }
+    inbound_endpoints = {
+      inbound = {
+        subnet_name                  = "inbound"
+        private_ip_allocation_method = "Static"
+        private_ip_address           = "10.0.0.4"
+        tags                         = { endpoint = "inbound" }
+      }
+    }
+    outbound_endpoints = {
+      outbound = {
+        subnet_name = "outbound"
+        forwarding_ruleset = {
+          first = {
+            name = "ruleset"
+            additional_virtual_network_links = {
+              spoke = {
+                vnet_id  = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/test/providers/Microsoft.Network/virtualNetworks/spoke"
+                metadata = { purpose = "spoke" }
+              }
+            }
+            rules = {
+              example = {
+                domain_name              = "example.com."
+                destination_ip_addresses = { "10.1.0.4" = "53" }
+                enabled                  = false
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  assert {
+    condition     = azapi_resource.inbound_endpoint["inbound"].body.properties.ipConfigurations[0].privateIpAddress == "10.0.0.4" && azapi_resource.inbound_endpoint["inbound"].tags == tomap({ environment = "test", endpoint = "inbound" })
+    error_message = "The static inbound address and merged endpoint tags must be preserved."
+  }
+  assert {
+    condition     = azapi_resource.forwarding_rule["outbound-ruleset-example"].body.properties.domainName == "example.com." && azapi_resource.forwarding_rule["outbound-ruleset-example"].body.properties.forwardingRuleState == "Disabled"
+    error_message = "Forwarding rules must retain their domain and enabled setting."
+  }
+  assert {
+    condition     = length(azapi_resource.virtual_network_link_default) == 1 && azapi_resource.virtual_network_link_additional["outbound-ruleset-spoke"].body.properties.metadata["purpose"] == "spoke"
+    error_message = "Default and additional virtual network links must be created with their metadata."
+  }
+}
+
+run "optional_rules" {
+  command = apply
+
+  variables {
+    outbound_endpoints = {
+      outbound = {
+        subnet_name = "outbound"
+        forwarding_ruleset = {
+          empty = {}
+        }
+      }
+    }
+  }
+
+  assert {
+    condition     = length(output.forwarding_rulesets) == 1 && length(azapi_resource.forwarding_rule) == 0
+    error_message = "A forwarding ruleset must support omitting its optional rules."
+  }
+}
+
+run "locks_and_role_assignments" {
+  command = apply
+
+  variables {
+    lock = { kind = "CanNotDelete" }
+    role_assignments = {
+      reader = {
+        role_definition_id_or_name = "Reader"
+        principal_id               = "00000000-0000-0000-0000-000000000001"
+        description                = "DNS reader"
+        principal_type             = "ServicePrincipal"
+      }
+    }
+    outbound_endpoints = {
+      outbound = {
+        subnet_name = "outbound"
+        forwarding_ruleset = {
+          first = {
+            name  = "ruleset"
+            rules = {}
+          }
+        }
+      }
+    }
+  }
+
+  assert {
+    condition     = azapi_resource.lock[0].parent_id == output.resource_id && length(azapi_resource.lock_rulesets) == 1
+    error_message = "Locks must protect the resolver and its forwarding rulesets."
+  }
+  assert {
+    condition     = azapi_resource.role_assignments["reader"].body.properties.description == "DNS reader" && azapi_resource.role_assignments["reader"].body.properties.principalType == "ServicePrincipal"
+    error_message = "Resolver role assignments must retain their description and principal type."
+  }
+  assert {
+    condition     = length(azapi_resource.role_assignments_rulesets) == 1 && endswith(azapi_resource.role_assignments_rulesets["0"].body.properties.roleDefinitionId, "acdd72a7-3385-48ef-bd42-f606fba81ae7") && azapi_resource.role_assignments_rulesets["0"].body.properties.principalType == "ServicePrincipal"
+    error_message = "The existing ruleset assignment address and role must be preserved."
+  }
+}
+
+run "invalid_lock" {
+  command = plan
+
+  variables {
+    lock = { kind = "Invalid" }
+  }
+
+  expect_failures = [var.lock]
+}
+
+run "invalid_name" {
+  command = plan
+
+  variables {
+    name = ""
+  }
+
+  expect_failures = [var.name]
+}

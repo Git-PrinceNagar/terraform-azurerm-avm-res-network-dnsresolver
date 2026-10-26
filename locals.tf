@@ -1,9 +1,6 @@
 # Deafult locals
 
 locals {
-  # Request headers carrying the AVM telemetry User-Agent, applied to every `azapi_resource`
-  # in this module. `null` when telemetry is disabled so no header is sent at all.
-  azapi_headers = var.enable_telemetry ? { "User-Agent" : local.avm_azapi_header } : null
   # The location where the resources will be created
   location = var.location
   # The resource group that hosts the DNS resolver and the forwarding rulesets. AzAPI addresses

@@ -69,10 +69,6 @@ The following requirements are needed by this module:
 
 - <a name="requirement_azapi"></a> [azapi](#requirement\_azapi) (~> 2.12)
 
-- <a name="requirement_modtm"></a> [modtm](#requirement\_modtm) (~> 0.3)
-
-- <a name="requirement_random"></a> [random](#requirement\_random) (>= 3.5.0)
-
 ## Resources
 
 The following resources are used by this module:
@@ -85,15 +81,14 @@ The following resources are used by this module:
 - [azapi_resource.outbound_endpoint](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.role_assignments](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.role_assignments_rulesets](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
+- [azapi_resource.telemetry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.this](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.virtual_network_link_additional](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
 - [azapi_resource.virtual_network_link_default](https://registry.terraform.io/providers/Azure/azapi/latest/docs/resources/resource) (resource)
-- [modtm_telemetry.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/resources/telemetry) (resource)
-- [random_uuid.telemetry](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) (resource)
 - [terraform_data.outbound](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) (resource)
+- [terraform_data.telemetry](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) (resource)
 - [azapi_client_config.current](https://registry.terraform.io/providers/Azure/azapi/latest/docs/data-sources/client_config) (data source)
 - [azapi_client_config.telemetry](https://registry.terraform.io/providers/Azure/azapi/latest/docs/data-sources/client_config) (data source)
-- [modtm_module_source.telemetry](https://registry.terraform.io/providers/azure/modtm/latest/docs/data-sources/module_source) (data source)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
@@ -235,7 +230,7 @@ Description: A map of outbound endpoints to create for this DNS resolver.
     - `name` - (Optional) The name of the additional virtual network link.
     - `vnet_id` - (Required) The ID of the virtual network to link to.
     - `metadata` - (Optional) A map of metadata to associate with the virtual network link.
-  - `rules` - (Optional) A map of forwarding rules to create for the forwarding ruleset.
+  - `rules` - (Optional) A map of forwarding rules to create for the forwarding ruleset. Defaults to an empty map.
     - `name` - (Optional) The name of the forwarding rule.
     - `domain_name` - (Required) The domain name to forward.
     - `destination_ip_addresses` - (Required) A map where the key is the IP address and the value is the port.
@@ -272,7 +267,7 @@ map(object({
         destination_ip_addresses = map(string)
         enabled                  = optional(bool, true)
         metadata                 = optional(map(string), null)
-      })))
+      })), {})
     })))
   }))
 ```
