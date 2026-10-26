@@ -7,7 +7,9 @@ mock_provider "azapi" {
     }
   }
 }
+
 mock_provider "random" {}
+
 mock_provider "terraform" {}
 
 override_resource {
@@ -66,6 +68,11 @@ run "defaults" {
     condition     = length(azapi_resource.telemetry) == 0 && length(terraform_data.telemetry) == 0 && length(data.azapi_client_config.telemetry) == 0 && length(azapi_resource.lock) == 0 && length(azapi_resource.role_assignments) == 0
     error_message = "Disabled telemetry and unconfigured locks and assignments must not create resources."
   }
+  providers = {
+    azapi     = azapi
+    random    = random
+    terraform = terraform
+  }
 }
 
 run "telemetry_enabled" {
@@ -78,6 +85,11 @@ run "telemetry_enabled" {
   assert {
     condition     = length(azapi_resource.telemetry) == 1 && length(data.azapi_client_config.telemetry) == 1 && length(terraform_data.telemetry) == 1
     error_message = "Enabled telemetry must use the mocked providers."
+  }
+  providers = {
+    azapi     = azapi
+    random    = random
+    terraform = terraform
   }
 }
 
@@ -131,6 +143,11 @@ run "endpoints_rules_and_links" {
     condition     = length(azapi_resource.virtual_network_link_default) == 1 && azapi_resource.virtual_network_link_additional["outbound-ruleset-spoke"].body.properties.metadata["purpose"] == "spoke"
     error_message = "Default and additional virtual network links must be created with their metadata."
   }
+  providers = {
+    azapi     = azapi
+    random    = random
+    terraform = terraform
+  }
 }
 
 run "optional_rules" {
@@ -150,6 +167,11 @@ run "optional_rules" {
   assert {
     condition     = length(output.forwarding_rulesets) == 1 && length(azapi_resource.forwarding_rule) == 0
     error_message = "A forwarding ruleset must support omitting its optional rules."
+  }
+  providers = {
+    azapi     = azapi
+    random    = random
+    terraform = terraform
   }
 }
 
@@ -191,6 +213,11 @@ run "locks_and_role_assignments" {
     condition     = length(azapi_resource.role_assignments_rulesets) == 1 && endswith(azapi_resource.role_assignments_rulesets["0"].body.properties.roleDefinitionId, "acdd72a7-3385-48ef-bd42-f606fba81ae7") && azapi_resource.role_assignments_rulesets["0"].body.properties.principalType == "ServicePrincipal"
     error_message = "The existing ruleset assignment address and role must be preserved."
   }
+  providers = {
+    azapi     = azapi
+    random    = random
+    terraform = terraform
+  }
 }
 
 run "invalid_lock" {
@@ -201,6 +228,11 @@ run "invalid_lock" {
   }
 
   expect_failures = [var.lock]
+  providers = {
+    azapi     = azapi
+    random    = random
+    terraform = terraform
+  }
 }
 
 run "invalid_name" {
@@ -211,4 +243,9 @@ run "invalid_name" {
   }
 
   expect_failures = [var.name]
+  providers = {
+    azapi     = azapi
+    random    = random
+    terraform = terraform
+  }
 }

@@ -1,11 +1,13 @@
 mock_provider "azapi" {
   mock_data "azapi_client_config" {
     defaults = {
-      subscription_id = "00000000-0000-0000-0000-000000000001"
-      tenant_id       = "00000000-0000-0000-0000-000000000002"
+      subscription_id          = "00000000-0000-0000-0000-000000000001"
+      tenant_id                = "00000000-0000-0000-0000-000000000002"
+      subscription_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000001"
     }
   }
 }
+
 mock_provider "random" {}
 
 override_resource {
@@ -86,6 +88,10 @@ run "resolves_role_names_through_the_lookup" {
     condition     = azapi_resource.role_assignments_rulesets["0"].body.properties.roleDefinitionId == azapi_resource.role_assignments["custom"].body.properties.roleDefinitionId
     error_message = "The forwarding ruleset assignment must send the same resolved role definition id as the resolver assignment."
   }
+  providers = {
+    azapi  = azapi
+    random = random
+  }
 }
 
 run "sends_service_principal_type_when_skip_check_is_true" {
@@ -140,6 +146,10 @@ run "sends_service_principal_type_when_skip_check_is_true" {
     condition     = azapi_resource.role_assignments_rulesets["0"].body.properties.principalType == null
     error_message = "principalType must stay unset on the forwarding ruleset assignment when neither the flag nor principal_type is set."
   }
+  providers = {
+    azapi  = azapi
+    random = random
+  }
 }
 
 run "derives_distinct_lowercase_names" {
@@ -182,6 +192,10 @@ run "derives_distinct_lowercase_names" {
     condition     = azapi_resource.role_assignments_rulesets["0"].name != azapi_resource.role_assignments_rulesets["1"].name
     error_message = "Ruleset assignments with different principals must get different derived names."
   }
+  providers = {
+    azapi  = azapi
+    random = random
+  }
 }
 
 run "pinned_name_applies_to_the_resolver_only" {
@@ -206,6 +220,10 @@ run "pinned_name_applies_to_the_resolver_only" {
     condition     = azapi_resource.role_assignments_rulesets["0"].name != "11111111-1111-4111-8111-111111111111"
     error_message = "A pinned name must not be reused at the forwarding ruleset scope."
   }
+  providers = {
+    azapi  = azapi
+    random = random
+  }
 }
 
 run "retries_principal_not_found_on_role_assignments_by_default" {
@@ -219,6 +237,10 @@ run "retries_principal_not_found_on_role_assignments_by_default" {
   assert {
     condition     = contains(azapi_resource.role_assignments_rulesets["0"].retry.error_message_regex, "PrincipalNotFound")
     error_message = "The default retry must cover PrincipalNotFound on the forwarding ruleset role assignment."
+  }
+  providers = {
+    azapi  = azapi
+    random = random
   }
 }
 
@@ -240,5 +262,9 @@ run "forwards_custom_retry_to_role_assignments" {
   assert {
     condition     = azapi_resource.role_assignments_rulesets["0"].retry.error_message_regex == tolist(["CustomTransient"])
     error_message = "A consumer retry override must reach the forwarding ruleset role assignment."
+  }
+  providers = {
+    azapi  = azapi
+    random = random
   }
 }

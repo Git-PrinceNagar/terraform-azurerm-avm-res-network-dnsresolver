@@ -1,11 +1,13 @@
 mock_provider "azapi" {
   mock_data "azapi_client_config" {
     defaults = {
-      subscription_id = "00000000-0000-0000-0000-000000000001"
-      tenant_id       = "00000000-0000-0000-0000-000000000002"
+      subscription_id          = "00000000-0000-0000-0000-000000000001"
+      tenant_id                = "00000000-0000-0000-0000-000000000002"
+      subscription_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000001"
     }
   }
 }
+
 mock_provider "random" {}
 
 override_resource {
@@ -37,6 +39,10 @@ run "dynamic_endpoint_leaves_ip_unset" {
     condition     = azapi_resource.inbound_endpoint["dns"].body.properties.ipConfigurations[0].privateIpAllocationMethod == "Dynamic"
     error_message = "The default allocation method must be Dynamic."
   }
+  providers = {
+    azapi  = azapi
+    random = random
+  }
 }
 
 run "explicit_static_ip_is_honored" {
@@ -56,6 +62,10 @@ run "explicit_static_ip_is_honored" {
     condition     = azapi_resource.inbound_endpoint["dns"].body.properties.ipConfigurations[0].privateIpAddress == "10.0.4.70"
     error_message = "An explicit Static IP must be sent in the body."
   }
+  providers = {
+    azapi  = azapi
+    random = random
+  }
 }
 
 run "switching_from_static_to_dynamic_leaves_ip_unset" {
@@ -64,5 +74,9 @@ run "switching_from_static_to_dynamic_leaves_ip_unset" {
   assert {
     condition     = azapi_resource.inbound_endpoint["dns"].body.properties.ipConfigurations[0].privateIpAddress == null
     error_message = "Switching to Dynamic allocation must not retain a previously Static IP."
+  }
+  providers = {
+    azapi  = azapi
+    random = random
   }
 }

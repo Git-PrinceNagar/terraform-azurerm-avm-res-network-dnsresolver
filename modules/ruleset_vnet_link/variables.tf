@@ -39,6 +39,17 @@ DESCRIPTION
   }
 }
 
+variable "enable_telemetry" {
+  type        = bool
+  default     = true
+  description = <<DESCRIPTION
+This variable controls whether or not telemetry is enabled for the module.
+For more information see <https://aka.ms/avm/telemetryinfo>.
+If it is set to false, then no telemetry will be collected.
+DESCRIPTION
+  nullable    = false
+}
+
 variable "ignore_body_changes" {
   type = object({
     network_dns_forwarding_rulesets_virtual_network_links = optional(list(string), [])
@@ -119,15 +130,4 @@ Set the whole object to `null` to omit the `timeouts` block entirely and use the
 - `update` - (Optional) Timeout for update operations.
 - `delete` - (Optional) Timeout for delete operations.
 DESCRIPTION
-}
-
-variable "enable_telemetry" {
-  type        = bool
-  default     = true
-  description = <<DESCRIPTION
-This variable controls whether or not telemetry is enabled for the module.
-For more information see <https://aka.ms/avm/telemetryinfo>.
-If it is set to false, then no telemetry will be collected.
-DESCRIPTION
-  nullable    = false
 }

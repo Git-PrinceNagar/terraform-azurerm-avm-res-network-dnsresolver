@@ -5,8 +5,9 @@
 # through as the role definition id, so a lookup at the wrong scope would send an invalid id.
 module "interfaces" {
   source  = "Azure/avm-utl-interfaces/azure"
-  version = "0.6.0"
+  version = "0.9.0"
 
+  location                         = var.location
   enable_telemetry                 = var.enable_telemetry
   lock                             = var.lock
   role_assignment_definition_scope = local.resource_group_resource_id
