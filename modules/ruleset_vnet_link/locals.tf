@@ -8,8 +8,7 @@ locals {
 
 locals {
   # `azurerm_private_dns_resolver_virtual_network_link` used create 30m / read 5m /
-  # update 30m / delete 30m (azurerm v4.36.0,
-  # internal/services/privatednsresolver/private_dns_resolver_virtual_network_link_resource.go).
+  # update 30m / delete 30m (azurerm v4.36.0).
   timeouts = {
     create = coalesce(try(var.timeouts.create, null), "30m")
     delete = coalesce(try(var.timeouts.delete, null), "30m")

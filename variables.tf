@@ -114,9 +114,9 @@ DESCRIPTION
     error_message = "`inbound_endpoints[*].private_ip_allocation_method` must be either `Dynamic` or `Static`."
   }
   validation {
-    # Reproduces the check AzureRM performed in `expandIPConfigurationModel`
-    # (inbound_endpoint_resource.go L296-303), which failed at apply time. Failing at plan
-    # time is strictly better, and AzAPI would otherwise send the request straight to ARM.
+    # Reproduces the check AzureRM performed in `expandIPConfigurationModel`, which failed at
+    # apply time. Failing at plan time is strictly better, and AzAPI would otherwise send the
+    # request straight to ARM.
     condition     = alltrue([for endpoint in var.inbound_endpoints : !(endpoint.private_ip_allocation_method == "Dynamic" && endpoint.private_ip_address != null)])
     error_message = "`inbound_endpoints[*].private_ip_address` must not be set when `private_ip_allocation_method` is `Dynamic`."
   }

@@ -30,7 +30,7 @@ resource "azapi_resource" "this" {
   # Matches AzureRM's nil-pointer/omitempty serialisation: an optional the consumer left unset
   # is absent from the request rather than sent as an explicit JSON null.
   ignore_null_property = true
-  # `virtual_network_id` was ForceNew on `azurerm_private_dns_resolver` (L61): a resolver
+  # `virtual_network_id` was ForceNew on `azurerm_private_dns_resolver`: a resolver
   # cannot be repointed at a different virtual network in place.
   replace_triggers_refs = [
     "properties.virtualNetwork.id",
@@ -120,7 +120,7 @@ resource "azapi_resource" "outbound_endpoint" {
   }
   ignore_body_changes  = length(var.ignore_body_changes.network_dns_resolvers_outbound_endpoints) > 0 ? var.ignore_body_changes.network_dns_resolvers_outbound_endpoints : null
   ignore_null_property = true
-  # `subnet_id` was ForceNew on `azurerm_private_dns_resolver_outbound_endpoint` (L66).
+  # `subnet_id` was ForceNew on `azurerm_private_dns_resolver_outbound_endpoint`.
   replace_triggers_refs = [
     "properties.subnet.id",
   ]
@@ -145,12 +145,12 @@ resource "azapi_resource" "outbound_endpoint" {
 
 # the "terraform_data" resource is used to trigger replacement of the forwarding rulesets when the outbound endpoint is recreated"
 #
-# 🔴 KEPT DELIBERATELY. Removing it would destroy live `terraform_data` state entries and
-# would also broaden the trigger: `replace_triggered_by` on a single resource INSTANCE fires
-# when that instance is planned for update as well as for replace, so pointing the rulesets
-# straight at the endpoint would recreate them on any endpoint change (a tag edit, for
-# example). `input` now holds the AzAPI id; AzAPI re-serialises the same parsed ARM id, so the
-# stored value is unchanged and no ruleset is triggered at adoption.
+# Kept on purpose. Removing it would destroy live `terraform_data` state entries and would also
+# broaden the trigger: `replace_triggered_by` on a single resource instance fires when that
+# instance is planned for update as well as for replace, so pointing the rulesets straight at
+# the endpoint would recreate them on any endpoint change (a tag edit, for example). `input`
+# now holds the AzAPI id; AzAPI re-serialises the same parsed ARM id, so the stored value is
+# unchanged and no ruleset is triggered at adoption.
 resource "terraform_data" "outbound" {
   for_each = tomap({ for ruleset in local.forwarding_rulesets : "${ruleset.outbound_endpoint_name}-${ruleset.name}" => ruleset })
 
@@ -178,7 +178,7 @@ resource "azapi_resource" "forwarding_ruleset" {
   ignore_body_changes  = length(var.ignore_body_changes.network_dns_forwarding_rulesets) > 0 ? var.ignore_body_changes.network_dns_forwarding_rulesets : null
   ignore_null_property = true
   # No `replace_triggers_refs`: the only ForceNew field on
-  # `azurerm_private_dns_resolver_dns_forwarding_ruleset` was `name` (L50), which AzAPI already
+  # `azurerm_private_dns_resolver_dns_forwarding_ruleset` was `name`, which AzAPI already
   # treats as a replacement trigger natively. Outbound-endpoint replacement is propagated by
   # `terraform_data.outbound` below, exactly as before.
   response_export_values = [
@@ -213,7 +213,7 @@ resource "azapi_resource" "forwarding_rule" {
   body = {
     properties = {
       domainName = each.value.domain_name
-      # AzureRM mapped the `enabled` bool onto this enum (forwarding_rule_resource.go L136-139).
+      # AzureRM mapped the `enabled` bool onto this enum.
       forwardingRuleState = each.value.enabled ? "Enabled" : "Disabled"
       metadata            = each.value.metadata
       # `destination_ip_addresses` is a map(string) keyed by IP with the port as the value, but
@@ -229,7 +229,7 @@ resource "azapi_resource" "forwarding_rule" {
   }
   ignore_body_changes  = length(var.ignore_body_changes.network_dns_forwarding_rulesets_forwarding_rules) > 0 ? var.ignore_body_changes.network_dns_forwarding_rulesets_forwarding_rules : null
   ignore_null_property = true
-  # `domain_name` was ForceNew on `azurerm_private_dns_resolver_forwarding_rule` (L71).
+  # `domain_name` was ForceNew on `azurerm_private_dns_resolver_forwarding_rule`.
   replace_triggers_refs = [
     "properties.domainName",
   ]
@@ -263,8 +263,7 @@ resource "azapi_resource" "virtual_network_link_default" {
   }
   ignore_body_changes  = length(var.ignore_body_changes.network_dns_forwarding_rulesets_virtual_network_links) > 0 ? var.ignore_body_changes.network_dns_forwarding_rulesets_virtual_network_links : null
   ignore_null_property = true
-  # `virtual_network_id` was ForceNew on
-  # `azurerm_private_dns_resolver_virtual_network_link` (L62).
+  # `virtual_network_id` was ForceNew on `azurerm_private_dns_resolver_virtual_network_link`.
   replace_triggers_refs = [
     "properties.virtualNetwork.id",
   ]
@@ -408,7 +407,7 @@ resource "azapi_resource" "role_assignments" {
     }
   }
 
-  # 🔴 REQUIRED BY THE MIGRATION, blessed by `avm-tf-migration` SKILL.md L113-117.
+  # Required by the migration (`avm-tf-migration` SKILL).
   # A role assignment created by AzureRM has a server-assigned GUID as its name. The state move
   # recovers it from the resource id, while the derived name above can never match it, and
   # `name` carries `RequiresReplace` in AzAPI -- so without this the adoption plan would
@@ -468,14 +467,14 @@ resource "azapi_resource" "role_assignments_rulesets" {
 }
 
 # =============================================================================
-# AzureRM -> AzAPI state moves (`avm-tf-migration` SKILL.md L66-78)
+# AzureRM -> AzAPI state moves (`avm-tf-migration` SKILL)
 #
-# The provider migration is IN PLACE: same module, same `for_each`/`count`
+# The provider migration is in place: same module, same `for_each`/`count`
 # boundary, same keys, so every move is a whole-resource move and the consumer
 # only bumps the module version. Plan with a normal refresh: the `move_state`
-# private flag makes the first refreshing read backfill `body` from Azure
-# (`azapi_resource.go` L1281-1289). A `-refresh=false` plan hits azapi#1227 and
-# plans a replace on every resource that carries `location`.
+# private flag makes the first refreshing read backfill `body` from Azure. A
+# `-refresh=false` plan hits azapi#1227 and plans a replace on every resource
+# that carries `location`.
 # =============================================================================
 
 moved {

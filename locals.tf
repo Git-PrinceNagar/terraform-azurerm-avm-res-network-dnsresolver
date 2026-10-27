@@ -12,8 +12,7 @@ locals {
   # Per-resource timeout fallbacks. Every resource this module replaced -- the six
   # `azurerm_private_dns_resolver*` resources plus `azurerm_management_lock` and
   # `azurerm_role_assignment` -- used the same defaults, so one set covers the module:
-  # create 30m / read 5m / update 30m / delete 30m
-  # (azurerm v4.36.0, internal/services/privatednsresolver/*_resource.go).
+  # create 30m / read 5m / update 30m / delete 30m (azurerm v4.36.0).
   timeouts = {
     create = coalesce(try(var.timeouts.create, null), "30m")
     delete = coalesce(try(var.timeouts.delete, null), "30m")
@@ -137,7 +136,7 @@ locals {
       }
     ]
   ]
-  # 🔴 KEY SHAPE -- DO NOT "FIX" THIS.
+  # Key shape: do not "fix" this.
   # `ruleset_role_assignments` is a list OF LISTS, so after `flatten()` the iteration
   # variable `composite_key` is the numeric LIST INDEX as a string ("0", "1", ...), not the
   # `composite_key` FIELD inside each object. Live state created by
